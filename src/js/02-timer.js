@@ -3,8 +3,8 @@ import flatpickr from "flatpickr";
 import "flatpickr/dist/flatpickr.min.css";
 import Notiflix from "notiflix";
 
-// Ініціалізуємо flatpickr з опціями
-const picker = flatpickr("#datetime-picker", {
+
+const options = {
   enableTime: true,
   time_24hr: true,
   defaultDate: new Date(),
@@ -12,7 +12,6 @@ const picker = flatpickr("#datetime-picker", {
   onClose(selectedDates) {
     const selectedDate = selectedDates[0];
 
-    // Перевіряємо, чи вибрана дата в майбутньому
     if (selectedDate < new Date()) {
       Notiflix.Report.warning("Warning", "Please choose a date in the future", "OK");
       document.querySelector('[data-start]').disabled = true;
@@ -20,14 +19,33 @@ const picker = flatpickr("#datetime-picker", {
       document.querySelector('[data-start]').disabled = false;
     }
   },
-});
+};
 
-// Функція для форматування числа з провідним нулем
+const picker = flatpickr("#datetime-picker", options);
+
 function addLeadingZero(value) {
   return value.toString().padStart(2, "0");
 }
 
-// Функція для розрахунку часу
+function updateTimer(endDate) {
+  const currentTime = new Date().getTime();
+  const timeRemaining = endDate - currentTime;
+
+  if (timeRemaining <= 0) {
+    clearInterval(timerInterval);
+    document.querySelector('[data-start]').disabled = false;
+    Notiflix.Report.success("Time's up!", "The countdown has finished.", "OK");
+    return;
+  }
+
+  const { days, hours, minutes, seconds } = convertMs(timeRemaining);
+
+  document.querySelector('[data-days]').textContent = addLeadingZero(days);
+  document.querySelector('[data-hours]').textContent = addLeadingZero(hours);
+  document.querySelector('[data-minutes]').textContent = addLeadingZero(minutes);
+  document.querySelector('[data-seconds]').textContent = addLeadingZero(seconds);
+}
+
 function convertMs(ms) {
   const second = 1000;
   const minute = second * 60;
@@ -42,36 +60,10 @@ function convertMs(ms) {
   return { days, hours, minutes, seconds };
 }
 
-// Оновлюємо значення таймера
-function updateTimer(endTime) {
-  const currentTime = new Date();
-  const timeDiff = endTime - currentTime;
+let timerInterval;
 
-  if (timeDiff <= 0) {
-    clearInterval(timerInterval);
-    Notiflix.Notify.success("Time's up!");
-    return;
-  }
-
-  const { days, hours, minutes, seconds } = convertMs(timeDiff);
-
-  document.querySelector('[data-days]').textContent = addLeadingZero(days);
-  document.querySelector('[data-hours]').textContent = addLeadingZero(hours);
-  document.querySelector('[data-minutes]').textContent = addLeadingZero(minutes);
-  document.querySelector('[data-seconds]').textContent = addLeadingZero(seconds);
-}
-
-// Обробник натискання на кнопку "Start"
-document.querySelector('[data-start]').addEventListener('click', () => {
-  const selectedDate = picker.selectedDates[0];
-
-  if (!selectedDate) {
-    return;
-  }
-
-  const endTime = selectedDate.getTime();
-
-  const timerInterval = setInterval(() => {
-    updateTimer(endTime);
-  }, 1000);
+document.querySelector('[data-start]').addEventListener("click", () => {
+  const endDate = picker.selectedDates[0].getTime();
+  document.querySelector('[data-start]').disabled = true;
+  timerInterval = setInterval(() => updateTimer(endDate), 1000);
 });
